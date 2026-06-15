@@ -235,3 +235,52 @@ def visualizar(G_normal, mules_n, cent_n, G_fraude, mules_f, cent_f):
     plt.savefig('rede_antifraude_nubank.png',
                 dpi=160, bbox_inches='tight', facecolor=BG)
     print("  Salvo com sucesso localmente: rede_antifraude_nubank.png")
+
+    # =============================================================================
+# 5. MAIN
+# =============================================================================
+
+def main():
+    SEP = "=" * 62
+    print(SEP)
+    print("  NUBANK ANTIFRAUD — MONEY MULE DETECTION  |  Grafos 2026.1")
+    print(SEP)
+
+    # ── Grafo 1: fluxo normal ────────────────────────────────────────────────
+    print("\n[1/4] Criando grafo de fluxo normal...")
+    G_normal = criar_grafo_normal()
+    mules_n, cent_n = detectar_money_mules(G_normal, threshold=0.02)
+    print(f"      {G_normal.number_of_nodes()} contas | {G_normal.number_of_edges()} transações")
+    print(f"      Suspeitos detectados: {len(mules_n)} → {'Nenhum ✅' if not mules_n else mules_n}")
+
+    # ── Grafo 2: fraude ──────────────────────────────────────────────────────
+    print("\n[2/4] Criando grafo de fraude (money mule)...")
+    G_fraude = criar_grafo_fraude()
+    mules_f, cent_f = detectar_money_mules(G_fraude, threshold=0.02)
+    print(f"      {G_fraude.number_of_nodes()} contas | {G_fraude.number_of_edges()} transações")
+
+    # ── Rankings ─────────────────────────────────────────────────────────────
+    print("\n[3/4] Ranking Betweenness Centrality — Grafo Fraude")
+    print(f"  {'Conta':<18} {'Centralidade':>14} {'Status':>12}")
+    print("  " + "-" * 46)
+    for conta, val in sorted(cent_f.items(), key=lambda x: -x[1]):
+        if val > 0:
+            status = "SUSPEITO" if val >= 0.02 else "Atencao" if val > 0.01 else "Normal"
+            print(f"  {conta:<18} {val:>14.4f} {status:>12}")
+
+    if mules_f:
+        calcular_metricas(G_fraude, mules_f)
+        print(f"\n🚨 ALERTA FINAL: {len(mules_f)} conta(s) identificada(s): {', '.join(mules_f)}")
+    else:
+        print("✅ Nenhuma conta suspeita detectada no grafo de fraude.")
+
+    # ── Visualização ─────────────────────────────────────────────────────────
+    print("\n[4/4] Gerando imagem comparativa...")
+    visualizar(G_normal, mules_n, cent_n, G_fraude, mules_f, cent_f)
+
+    print("\n[CONCLUÍDO] Análise finalizada.\n")
+    return mules_f
+
+
+if __name__ == "__main__":
+    main()

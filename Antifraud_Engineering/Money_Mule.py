@@ -76,3 +76,36 @@ def criar_grafo_fraude():
         G.add_edge(o, d, weight=v, amount=v)
     return G
 
+# =============================================================================
+# 2. DETECÇÃO DE MONEY MULES — BETWEENNESS CENTRALITY
+# =============================================================================
+
+def detectar_money_mules(G, threshold=0.02):
+    """
+    Betweenness Centrality: CB(v) = Σ [σ(s,t,v) / σ(s,t)]
+      σ(s,t)   = total de caminhos mínimos de s → t
+      σ(s,t,v) = caminhos que passam por v
+
+    Algoritmo de Brandes: O(VE + V²logV) para grafos ponderados.
+    """
+    centralidade = nx.betweenness_centrality(
+        G, normalized=True, weight='weight'
+    )
+    mules = [n for n, c in centralidade.items() if c >= threshold]
+    return mules, centralidade
+
+
+# =============================================================================
+# 3. MÉTRICAS ADICIONAIS
+# =============================================================================
+
+def calcular_metricas(G, mules):
+    print("\n=== MÉTRICAS DOS SUSPEITOS ===")
+    for mule in mules:
+        vol_rec = sum(d['amount'] for _, _, d in G.in_edges(mule, data=True))
+        vol_env = sum(d['amount'] for _, _, d in G.out_edges(mule, data=True))
+        taxa = (vol_env / vol_rec * 100) if vol_rec > 0 else 0
+        print(f"\n  {mule}")
+        print(f"    Recebeu de {G.in_degree(mule)} conta(s)  → R${vol_rec:,.0f}")
+        print(f"    Enviou p/ {G.out_degree(mule)} conta(s)  → R${vol_env:,.0f}")
+        print(f"    Taxa de repasse: {taxa:.1f}%")
